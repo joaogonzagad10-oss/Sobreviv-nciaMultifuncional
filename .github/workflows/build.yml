@@ -1,0 +1,47 @@
+name: Build Mod JAR from ZIP
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract mod zip if present
+        run: |
+          if [ -f "qol-miner-mod-1.18.2.zip" ]; then
+            unzip -o qol-miner-mod-1.18.2.zip -d mod_src
+          elif ls *.zip 1> /dev/null 2>&1; then
+            ZIP_FILE=$(ls *.zip | head -n 1)
+            unzip -o "$ZIP_FILE" -d mod_src
+          else
+            mkdir -p mod_src
+            cp -r . mod_src/ || true
+          fi
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build Mod JAR
+        working-directory: mod_src
+        run: gradle build
+
+      - name: Upload Mod JAR Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qolmod-1.18.2-jar
+          path: mod_src/build/libs/*.jar
+          
